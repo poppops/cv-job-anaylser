@@ -1,7 +1,7 @@
-import { DocxLoader } from "@langchain/community/document_loaders/fs/docx";
-import { TextLoader } from "@langchain/classic/document_loaders/fs/text";
 import { readFile } from "node:fs/promises";
-import { Document } from "langchain";
+import mammoth from "mammoth";
+
+type Document = { pageContent: string; metadata?: Record<string, unknown> };
 import PdfParse from "pdf-parse";
 import openai from "openai";
 import { zodResponseFormat } from "openai/helpers/zod";
@@ -12,7 +12,6 @@ import { jobSchema } from "../models/Job";
 import { jobFitSchema } from "../models/JobFit";
 
 export const loadDocuments = async (file: Express.Multer.File) => {
-    let loader;
     let documents: Document[];
 
     if (file.mimetype === "application/pdf") {
@@ -54,7 +53,7 @@ export const loadDocuments = async (file: Express.Multer.File) => {
         }
 
         documents = [
-            new Document({
+            {
                 pageContent,
                 metadata: {
                     source: file.originalname,
@@ -62,17 +61,36 @@ export const loadDocuments = async (file: Express.Multer.File) => {
                     size: file.size,
                     ...metadata,
                 },
-            }),
+            },
         ];
     } else if (
         file.mimetype ===
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     ) {
-        loader = new DocxLoader(file.path);
-        documents = await loader.load();
+        const result = await mammoth.extractRawText({ path: file.path });
+        const pageContent = result.value ?? "";
+        documents = [
+            {
+                pageContent,
+                metadata: {
+                    source: file.originalname,
+                    mimetype: file.mimetype,
+                    size: file.size,
+                },
+            },
+        ];
     } else if (file.mimetype.startsWith("text/")) {
-        loader = new TextLoader(file.path);
-        documents = await loader.load();
+        const pageContent = await readFile(file.path, "utf-8");
+        documents = [
+            {
+                pageContent,
+                metadata: {
+                    source: file.originalname,
+                    mimetype: file.mimetype,
+                    size: file.size,
+                },
+            },
+        ];
     } else {
         throw new Error(`Unsupported file type: ${file.mimetype}. Please upload a PDF, DOCX, or text file.`);
     }

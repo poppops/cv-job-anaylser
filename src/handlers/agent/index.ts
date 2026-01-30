@@ -71,6 +71,12 @@ export const chatWithGraph = async (req: Request, res: Response) => {
         }
 
         if (input && typeof input === "string") {
+            if (!state.cv || !state.jobs?.length) {
+                return res.status(400).json({
+                    sessionId,
+                    error: "Upload a CV and at least one job description before submitting queries.",
+                });
+            }
             const result = await graph.invoke({ ...state, type: "question", question: input });
             state = result as typeof state;
         }

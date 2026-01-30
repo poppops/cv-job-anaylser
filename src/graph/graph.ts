@@ -1,10 +1,10 @@
 import { StateGraph, START, END } from "@langchain/langgraph";
-import { GraphStateAnnotation } from "./state";
+import { GraphStateAnnotation, type GraphState } from "./state";
 import { router } from "./router";
 import { parseCVNode, parseJobNode, assessJobFitNode, generateResponseNode } from "./nodes";
 
 export const graph = new StateGraph(GraphStateAnnotation)
-    .addNode("router", (state) => state)
+    .addNode("router", (state: GraphState) => state)
     .addNode("parse_cv", parseCVNode)
     .addNode("parse_job", parseJobNode)
     .addNode("assess_job_fit", assessJobFitNode)

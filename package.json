@@ -3,8 +3,11 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon --watch 'src/**/*.ts' --exec 'tsx' src/server.ts",
-    "build": "tsc",
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:server": "nodemon --watch 'src/**/*.ts' --exec 'tsx' src/server.ts",
+    "dev:client": "cd frontend && npm run dev",
+    "build": "npm run build:client && tsc",
+    "build:client": "cd frontend && npm install && npm run build",
     "start": "node dist/server.js"
   },
   "repository": {
@@ -21,6 +24,7 @@
   "homepage": "https://github.com/poppops/cv-job-anaylser#readme",
   "description": "",
   "dependencies": {
+    "@langchain/core": "^1.1.17",
     "@langchain/langgraph": "^1.1.2",
     "cors": "^2.8.6",
     "dotenv": "^17.2.3",
@@ -42,6 +46,7 @@
     "@types/multer": "^2.0.0",
     "@types/node": "^25.1.0",
     "@types/pdf-parse": "^1.1.5",
+    "concurrently": "^9.2.1",
     "nodemon": "^3.1.11",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
