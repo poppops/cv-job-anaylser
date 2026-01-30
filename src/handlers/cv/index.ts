@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { unlink } from "fs/promises";
-import { loadDocuments, parseCV } from "../../utils/documents";
+import { assessJobFit, loadDocuments, parseCV } from "../../utils/documents";
 
 export const processCVFile = async (req: Request, res: Response) => {
     const { file } = req;
@@ -29,3 +29,9 @@ export const processCVFile = async (req: Request, res: Response) => {
         }
     }
 };
+
+export const processJobSuitability = async (req: Request, res: Response) => {
+    const { cv, job } = req.body;
+    const jobFit = await assessJobFit(cv, job);
+    res.json(jobFit);
+}

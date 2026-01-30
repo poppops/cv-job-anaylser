@@ -7,6 +7,7 @@ const app = express();
 
 app.use(cors());
 app.use(helmet());
+app.use(express.json());
 
 if (process.env.NODE_ENV === "dev") {
     app.use(morgan("dev"));
