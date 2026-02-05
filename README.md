@@ -6,7 +6,7 @@ Simply upload your CV and up to 10 job descriptions and ask questions in natural
 
 ## Project Set Up
 
-This project was created using Express on the backend and React for the front end.
+This project uses an Express backend and React frontend to implement a Retrieval-Augmented Generation (RAG) system. Documents are parsed into structured data, embedded using OpenAI, stored in Pinecone, and retrieved to support LLM-based reasoning.
 
 ### Installation
 
@@ -19,6 +19,8 @@ Create a .env file with the following variables;
 - NODE_ENV=development
 - PORT=4000
 - OPENAI_API_KEY=sk-proj-yourkeyhere
+- PINECONE_API_KEY=pcsk_yourkeyhere
+- PINCONE_HOST=https://yourindexsubdomain.pinecone.io
 
 #### API
 
@@ -61,15 +63,15 @@ To make this production ready I would;
 - Split out the frontend and backend into separate repos and deployments
 - Use message queues for some of the heavier processing tasks; parsing the CV and Job Descriptions takes a little longer than a great user experience would encourage
 - Make it easier to import job descriptions; plain text, URL parsing (I looked into implementing this briefly but several job boards use CAPTCHA to prevent scraping)
-- Unless a business requirement required it I would probably not persist the data but if it was necessary I'd look into a more robust vector database to manage the data (currently held in memory)
+- The system currently doesn't distinguish between users/cvs so I would introduce user accounts and allow a user to have a number of CVs associated to their account
 
 ## RAG/LLM Approach & Key Technical Decisions
 
 I initial created a linear flowing system which required the user to;
 
-1. Upload a CV
-2. Upload job descriptions
-3. Ask questions
+1. Upload a CV (parses the CV intro a structured format, embed using OpenAI and store in Pinecone)
+2. Upload job descriptions (parse job descriptions into a structured format, embed using OpenAI and store in Pinecone )
+3. Ask questions (Embed user query using OpenAI, retrieve relevant vectors and associated text from Pinecone, pass query with relevant CV and Job Description text excerpts to OpenAI for reasoning and response generation)
 
 Once the underlying services for each were in place and suitably functional, I created an agent using langgraph which allowed the user interactions to be more circular.
 
@@ -95,6 +97,8 @@ The folders structure is logical and hopefully self documenting - as is the code
 ## AI Tools
 
 The backend was mainly developed manually. This is an area I personally like to have control over as I believe if the API/Data Layer are structured correctly it matters less how things around them change. Code completions are used (sparingly) and cursor helps deal with less obvious bugs/erroneous imports due to version changes in libraries.
+
+I also used AI to refine the prompt used to generate responses.
 
 For the frontend my approach is quite the opposite. I do as much as I can with prompts and only dive into the code to make quick text changes or implement logic I need to be particular about. There was none of that in the quick interface which was developed.
 
