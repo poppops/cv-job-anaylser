@@ -4,7 +4,7 @@ const sessions = new Map<string, GraphState>();
 
 export function getState(sessionId: string): GraphState {
     if (!sessions.has(sessionId)) {
-        sessions.set(sessionId, { jobs: [], jobFits: [], response: "" });
+        sessions.set(sessionId, { jobs: [], response: "", cvEvidence: [], jobEvidence: [] });
     }
     return sessions.get(sessionId)!;
 }

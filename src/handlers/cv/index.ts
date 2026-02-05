@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
 import { unlink } from "fs/promises";
 import { assessJobFit, loadDocuments, parseCV } from "../../utils/documents";
+import { upsertVector } from "../../services/pinecone";
+import { embedText } from "../../utils/embeddings";
 
 export const processCVFile = async (req: Request, res: Response) => {
     const { file } = req;
@@ -12,6 +14,37 @@ export const processCVFile = async (req: Request, res: Response) => {
     try {
         const documents = await loadDocuments(file);
         const parsedCV = await parseCV(documents[0]?.pageContent || "");
+
+        for (const section of ['name', 'summary', 'strengths']) {
+            const embedding = await embedText(parsedCV[section]);
+
+            if (!embedding) {
+                continue;
+            }
+
+            await upsertVector(section, embedding, {
+                doc_type: "cv",
+                candidate_name: parsedCV.name,
+                section,
+                source_id: file.filename,
+                text: parsedCV[section],
+            });
+        }
+
+        for (const skill of parsedCV.skills) {
+            const embedding = await embedText(JSON.stringify(skill));
+
+            if (!embedding) {
+                continue;
+            }
+
+            await upsertVector(skill.name, embedding, {
+                doc_type: "cv",
+                candidate_name: parsedCV.name,
+                section: "skills - " + skill.name,
+                source_id: file.filename,
+            });
+        }
 
         res.json(parsedCV);
     } catch (error) {

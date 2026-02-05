@@ -5,10 +5,12 @@ export function router(state: GraphState): string | typeof END {
     switch (state.type) {
         case "upload_cv":
             return "parse_cv";
+        case "upsert_cv":
+            return "upsert_cv";
         case "upload_job":
             return "parse_job";
-        case "assess_job_fit":
-            return "assess_job_fit";
+        case "upsert_job":
+            return "upsert_job";
         case "question":
             return "generate_response";
         default:

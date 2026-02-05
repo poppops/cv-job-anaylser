@@ -4,6 +4,8 @@ import { unlink } from "node:fs/promises";
 import { loadDocuments } from "../../utils/documents";
 import { getState, saveState } from "../../state/store";
 import { graph } from "../../graph/graph";
+import { embedText } from "../../utils/embeddings";
+import { queryVectors } from "../../services/pinecone";
 
 function getSessionId(req: Request): string {
     const fromBody = req.body?.sessionId;
@@ -34,19 +36,13 @@ export const chatWithGraph = async (req: Request, res: Response) => {
         if (files?.cv?.[0]) {
             const cvDocs = await loadDocuments(files.cv[0]);
             const cvText = cvDocs[0]?.pageContent ?? "";
-            const result = await graph.invoke({ ...state, type: "upload_cv", cvText });
+            const result = await graph.invoke({
+                ...state,
+                type: "upload_cv",
+                cvText,
+                cvFilename: files.cv[0].filename,
+            });
             state = result as typeof state;
-
-            if (state.cv && state.jobs?.length) {
-                for (const job of state.jobs) {
-                    const assessResult = await graph.invoke({
-                        ...state,
-                        type: "assess_job_fit",
-                        pendingJob: job,
-                    });
-                    state = assessResult as typeof state;
-                }
-            }
         }
 
         if (files?.jobs?.length) {
@@ -55,18 +51,6 @@ export const chatWithGraph = async (req: Request, res: Response) => {
                 const jobText = jobDocs[0]?.pageContent ?? "";
                 const result = await graph.invoke({ ...state, type: "upload_job", jobText });
                 state = result as typeof state;
-
-                if (state.cv && state.jobs?.length) {
-                    const newJob = state.jobs[state.jobs.length - 1];
-                    if (newJob) {
-                        const assessResult = await graph.invoke({
-                            ...state,
-                            type: "assess_job_fit",
-                            pendingJob: newJob,
-                        });
-                        state = assessResult as typeof state;
-                    }
-                }
             }
         }
 
@@ -77,7 +61,28 @@ export const chatWithGraph = async (req: Request, res: Response) => {
                     error: "Upload a CV and at least one job description before submitting queries.",
                 });
             }
-            const result = await graph.invoke({ ...state, type: "question", question: input });
+
+            const inputEmbedding = await embedText(input);
+            if (!inputEmbedding) {
+                return res.status(400).json({
+                    sessionId,
+                    error: "Failed to embed input",
+                });
+            }
+
+            const cvEvidence = await queryVectors(inputEmbedding, 10, { doc_type: "cv" });
+            const jobEvidence = await queryVectors(inputEmbedding, 10, { doc_type: "job" });
+
+            const cvEvidenceEmbeddings = cvEvidence.map(item => item.metadata?.text);
+            const jobEvidenceEmbeddings = jobEvidence.map(item => item.metadata?.text);
+
+            const result = await graph.invoke({
+                ...state,
+                type: "question",
+                question: input,
+                cvEvidence: cvEvidenceEmbeddings,
+                jobEvidence: jobEvidenceEmbeddings
+            });
             state = result as typeof state;
         }
 
